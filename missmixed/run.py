@@ -130,18 +130,23 @@ def main():
     print(f"Input file path: {input_path}")
     print(f"Output file path: {output_path}")
 
-    if (categorical_idx == None):
+    if categorical_cols is None and categorical_idx is None and continuous_cols is None and continuous_idx is None:
+        print("Categorical columns: None")
+        print("Non-categorical columns: All Columns")
+    elif categorical_cols is not None:
         print(f"Categorical columns: {categorical_cols}")
-    else:
+    elif categorical_idx is not None:
         print(f"Categorical indices: {categorical_idx}")
-
-    if (continuous_idx == None):
+    elif continuous_cols is not None:
         print(f"Non-categorical columns: {continuous_cols}")
-    else:
+    elif continuous_idx is not None:
         print(f"Non-categorical indices: {continuous_idx}")
+
 
     print(f"Initial fill strategy: {initial_strategy}")
     print(f"Evaluation metric: {metric}")
+    print(f"Trials: {trials}")
+    print(f"Train Size: {train_size}")
     print(f"Verbose level: {verbose}")
 
     if not os.path.exists(input_path):

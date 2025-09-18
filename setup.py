@@ -9,7 +9,7 @@ print("Packages found:", packages)  # Debug print (helpful for you)
 
 setup(
     name="missmixed",
-    version="1.0.1",
+    version="1.1.0",
     packages=packages,
     author="Mohammad Mahdi Kalhori",
     author_email="mohammad.mahdi.kalhor.99@gmail.com",
