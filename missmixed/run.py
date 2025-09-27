@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import pandas as pd
 
@@ -21,50 +22,40 @@ def main():
     )
 
     parser.add_argument(
-        '--categorical-columns', '-cat-col',
+    '--column', '-col',
+    type=str,
+    nargs='+',
+    help=(
+        "Specify categorical or non-categorical columns by *name*.\n"
+        "Format: <type> <col1> <col2> ...\n"
+        "  <type> must be one of:\n"
+        "    'cat' or 'categorical'        → treat listed columns as discrete (categorical)\n"
+        "    'non-cat' or 'non-categorical' → treat listed columns as continuous (non-categorical)\n"
+        "If no columns are listed after <type>, all columns are treated according to <type>.\n"
+        "Examples:\n"
+        "  --column cat age city       → 'age' and 'city' are categorical\n"
+        "  --column non-cat income     → all except 'income' are categorical\n"
+        "Note: Use only one of --column or --index. "
+        "If neither is provided, all columns are treated as continuous (default)."
+        )
+    )
+
+    parser.add_argument(
+        '--index', '-idx',
         type=str,
         nargs='+',
         help=(
-            'Names of categorical columns (space-separated). '
-            'Use only one of: --categorical-columns, --categorical-index, '
-            '--continuous-columns, or --continuous-index. '
-            'If none are provided, all columns are treated as continuous (default).'
-        )
-    )
-
-    parser.add_argument(
-        '--categorical-index', '-cat-idx',
-        type=int,
-        nargs='+',
-        help=(
-            'Indices of categorical columns (space-separated). '
-            'Use only one of: --categorical-columns, --categorical-index, '
-            '--continuous-columns, or --continuous-index. '
-            'If none are provided, all columns are treated as continuous (default).'
-        )
-    )
-
-    parser.add_argument(
-        '--continuous-columns', '-con-col',
-        type=str,
-        nargs='+',
-        help=(
-            'Names of continuous (non-categorical) columns (space-separated). '
-            'Use only one of: --categorical-columns, --categorical-index, '
-            '--continuous-columns, or --continuous-index. '
-            'If none are provided, all columns are treated as continuous (default).'
-        )
-    )
-
-    parser.add_argument(
-        '--continuous-index', '-con-idx',
-        type=int,
-        nargs='+',
-        help=(
-            'Indices of continuous (non-categorical) columns (space-separated). '
-            'Use only one of: --categorical-columns, --categorical-index, '
-            '--continuous-columns, or --continuous-index. '
-            'If none are provided, all columns are treated as continuous (default).'
+            "Specify categorical or non-categorical columns by *index* (0-based).\n"
+            "Format: <type> <idx1> <idx2> ...\n"
+            "  <type> must be one of:\n"
+            "    'cat' or 'categorical'        → treat listed indices as discrete (categorical)\n"
+            "    'non-cat' or 'non-categorical' → treat listed indices as continuous (non-categorical)\n"
+            "If no indices are listed after <type>, all columns are treated according to <type>.\n"
+            "Examples:\n"
+            "  --index cat 0 2 4        → columns at indices 0, 2, 4 are categorical\n"
+            "  --index non-cat 1 3      → all except indices 1, 3 are categorical\n"
+            "Note: Use only one of --column or --index. "
+            "If neither is provided, all columns are treated as continuous (default)."
         )
     )
 
@@ -117,31 +108,65 @@ def main():
 
     input_path = args.path
     output_path = args.output
-    categorical_cols = args.categorical_columns
-    categorical_idx = args.categorical_index
-    continuous_cols = args.continuous_columns
-    continuous_idx = args.continuous_index
+
     initial_strategy = args.initial_strategy
     metric = args.metric
     trials = args.trials
     train_size = args.train_size
     verbose = args.verbose
+    
+    index = args.index
+    column = args.column
+    
+    categorical_idx = None
+    continuous_idx=None
+    categorical_cols = None
+    continuous_cols=None
+    
+    if index is not None:
+        t = index[0]
+        if t == 'cat' or t == 'categorical':
+            if len(index) > 1:
+                categorical_idx = [int(i) for i in index[1:]]
+            else:
+                continuous_idx = []
+        elif t == 'non-cat' or t == 'non-categorical':
+            if len(index) > 1:
+                continuous_idx = [int(i) for i in index[1:]]
+            else:
+                categorical_idx = []
+        else:
+            print("\033[31mInvalid type specified for --index.\033[0m")
+            print("Valid options are: 'cat', 'categorical', 'non-cat', 'non-categorical'.")
+            print("Example usage:")
+            print("  --index cat 0 2 4        (treat columns 0, 2, 4 as categorical)")
+            print("  --index non-cat 1 3      (treat all except 1, 3 as categorical)")
+            print("\033[33mProceeding with default: all columns treated as continuous.\033[0m")
+
+            
+    elif column is not None:
+        t = column[0]
+        if t == 'cat' or t == 'categorical':
+            if len(column) > 1:
+                categorical_cols = column[1:]
+            else:
+                continuous_cols = []
+        elif t == 'non-cat' or t == 'non-categorical':
+            if len(column) > 1:
+                continuous_cols = column[1:]
+            else:
+                categorical_cols = []
+        else:
+            print("\033[31mInvalid type specified for --column.\033[0m")
+            print("Valid options are: 'cat', 'categorical', 'non-cat', 'non-categorical'.")
+            print("Example usage:")
+            print("  --column cat age city    (treat 'age' and 'city' as categorical")
+            print("  --column non-cat income  (treat all except 'income' as categorical)")
+            print("\033[33mProceeding with default: all columns treated as continuous.\033[0m")
+
 
     print(f"Input file path: {input_path}")
     print(f"Output file path: {output_path}")
-
-    if categorical_cols is None and categorical_idx is None and continuous_cols is None and continuous_idx is None:
-        print("Categorical columns: None")
-        print("Non-categorical columns: All Columns")
-    elif categorical_cols is not None:
-        print(f"Categorical columns: {categorical_cols}")
-    elif categorical_idx is not None:
-        print(f"Categorical indices: {categorical_idx}")
-    elif continuous_cols is not None:
-        print(f"Non-categorical columns: {continuous_cols}")
-    elif continuous_idx is not None:
-        print(f"Non-categorical indices: {continuous_idx}")
-
 
     print(f"Initial fill strategy: {initial_strategy}")
     print(f"Evaluation metric: {metric}")
@@ -150,7 +175,7 @@ def main():
     print(f"Verbose level: {verbose}")
 
     if not os.path.exists(input_path):
-        print(f"Error: The file at path '{input_path}' does not exist.")
+        print(f"\033[31mError: The file at path '{input_path}' does not exist.\033[0m")
         return
 
     try:
@@ -160,21 +185,30 @@ def main():
         elif input_path.endswith('.xlsx'):
             data = pd.read_excel(input_path)
         else:
-            print("Unsupported file format. Please use .csv or .xlsx.")
+            print("\033[31mError: Unsupported input file format. Please use .csv or .xlsx.\033[0m")
+            return
+        
+        if output_path.endswith('.csv') == False and output_path.endswith('.xlsx') == False:
+            print("\033[31mError: Unsupported output file format. Please use .csv or .xlsx.\033[0m")
             return
 
         categorical_list_maker = CategoricalListMaker(data)
 
-        if categorical_cols:
+        if categorical_cols is not None:
             categorical_columns = categorical_list_maker.make_categorical_list(categorical_columns=categorical_cols)
-        elif categorical_idx:
+            print(f"Categorical columns: {categorical_cols}")
+        elif categorical_idx is not None:
             categorical_columns = categorical_list_maker.make_categorical_list(categorical_index=categorical_idx)
-        elif continuous_cols:
+            print(f"Categorical indices: {categorical_idx}")
+        elif continuous_cols is not None:
             categorical_columns = categorical_list_maker.make_categorical_list(non_categorical_columns=continuous_cols)
-        elif continuous_idx:
+            print(f"Non-categorical columns: {continuous_cols}")
+        elif continuous_idx is not None:
             categorical_columns = categorical_list_maker.make_categorical_list(non_categorical_index=continuous_idx)
+            print(f"Non-categorical indices: {continuous_idx}")
         else:
             categorical_columns = categorical_list_maker.make_categorical_list()
+            print(f"Non-categorical columns: All Columns")
 
         base_model = Sequential(trials=trials)
 
@@ -188,12 +222,14 @@ def main():
         imputed_data.columns = data.columns
 
         # Save the imputed data to the specified output path
-        imputed_data.to_csv(output_path, index=False)
-        print(f"Data successfully imputed. Results saved to: {output_path}")
+        if output_path.endswith('.csv'):
+            imputed_data.to_csv(output_path, index=False)
+        elif output_path.endswith('.xlsx'):
+            imputed_data.to_excel(output_path, index=False)
+        print(f"\033[32mData successfully imputed. Results saved to: {output_path}\033[0m")
 
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-
+        print(f"\033[31mAn unexpected error occurred: {e}\033[0m")
+        
 if __name__ == "__main__":
     main()
